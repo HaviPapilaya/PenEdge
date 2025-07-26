@@ -1,0 +1,205 @@
+{% macro bulan_id(tanggal) %}
+  {{ tanggal.replace('January','Januari').replace('February','Februari').replace('March','Maret').replace('April','April').replace('May','Mei').replace('June','Juni').replace('July','Juli').replace('August','Agustus').replace('September','September').replace('October','Oktober').replace('November','November').replace('December','Desember') }}
+{% endmacro %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+  <title>{{ report_title }}</title>
+    <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #222; margin: 0; padding: 0; }
+    h1, h2, h3 { color: #2c3e50; }
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 24px 24px 24px; }
+    .header-card {
+      background: #f0f4f8;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.07);
+      padding: 24px 24px 18px 24px;
+      margin-bottom: 32px;
+      border-left: 6px solid #2c3e50;
+        }
+    .header-card b { color: #2c3e50; }
+    .header-title { font-size: 2.6em; font-weight: bold; margin-bottom: 8px; letter-spacing: 1px; }
+    .header-info { font-size: 1.15em; margin-top: 8px; }
+    .section { margin-bottom: 32px; }
+    .section-title { background: #2c3e50; color: #fff; padding: 10px 18px; font-size: 18px; font-weight: bold; border-radius: 6px 6px 0 0; margin-bottom: 0; }
+    .section-content { background: #f8f9fa; padding: 18px 18px 12px 18px; border-radius: 0 0 6px 6px; border: 1px solid #e0e0e0; border-top: none; }
+    .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+    .summary-table th, .summary-table td { border: 1px solid #ddd; padding: 8px; }
+    .summary-table th { background: #eaeaea; }
+    .finding { margin-bottom: 18px; padding: 12px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; }
+    .severity-high { color: #c0392b; font-weight: bold; }
+    .severity-medium { color: #e67e22; font-weight: bold; }
+    .severity-low { color: #2980b9; font-weight: bold; }
+    pre, code { background: #f4f4f4; color: #222; padding: 8px 12px; border-radius: 4px; font-size: 13px; overflow-x: auto; margin: 0 0 12px 0; }
+    footer { background: #2c3e50; color: #fff; padding: 10px 0; text-align: center; font-size: 12px; width: 100%; margin-top: 40px; }
+    .recommendation-list { margin: 0 0 0 18px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <div class="header-card">
+      <div class="header-title">{{ report_title }}</div>
+      <div class="header-info">
+        <b>Target:</b> {{ target_domain }}<br>
+        <b>Tanggal:</b> {{ bulan_id(report_date) }}<br>
+        <b>Peneliti:</b> {{ researcher_name }}
+            </div>
+        </div>
+        
+            <div class="section">
+      <div class="section-title">Executive Summary</div>
+      <div class="section-content">
+        <p>{{ executive_summary }}</p>
+        <table class="summary-table">
+          <tr>
+            <th>Total Vulnerabilities</th>
+            <th>High</th>
+            <th>Medium</th>
+            <th>Low</th>
+          </tr>
+          <tr>
+            <td>{{ total_vulnerabilities }}</td>
+            <td>{{ high_vulnerabilities }}</td>
+            <td>{{ medium_vulnerabilities }}</td>
+            <td>{{ low_vulnerabilities }}</td>
+          </tr>
+        </table>
+                    </div>
+            </div>
+            
+            <div class="section">
+      <div class="section-title">Metodologi Pengujian</div>
+      <div class="section-content">
+        <ol>
+          <li><b>Reconnaissance</b>: Pengumpulan informasi awal (DNS, subdomain, email, dsb)</li>
+          <li><b>Scan & Enumeration</b>: Pemindaian port, service, dan deteksi kerentanan permukaan</li>
+          <li><b>Exploit & Analysis</b>: Eksploitasi kerentanan, analisis manual/otomatis, validasi temuan</li>
+          <li><b>SAST Analysis</b>: Analisis kode sumber (jika tersedia)</li>
+          <li><b>Reporting</b>: Penyusunan laporan dan rekomendasi</li>
+        </ol>
+                </div>
+            </div>
+            
+    <div class="section">
+      <div class="section-title">Ringkasan Tahapan</div>
+      <div class="section-content">
+        <b>Reconnaissance:</b>
+        <table class="summary-table">
+          <tr><th>Jenis</th><th>Nilai</th></tr>
+          {% if recon_table and recon_table|length > 0 %}
+            {% for row in recon_table %}
+              <tr><td>{{ row.type }}</td><td>{{ row.value }}</td></tr>
+                    {% endfor %}
+          {% else %}
+            <tr><td colspan="2">-</td></tr>
+                            {% endif %}
+        </table>
+        <b>Scan & Enumeration:</b>
+        <table class="summary-table">
+          <tr><th>Port</th><th>Service</th><th>Version</th></tr>
+          {% if scan_table and scan_table|length > 0 %}
+            {% for row in scan_table %}
+              <tr><td>{{ row.port }}</td><td>{{ row.service }}</td><td>{{ row.version }}</td></tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="3">-</td></tr>
+                            {% endif %}
+        </table>
+        <b>Exploit & Analysis:</b>
+        {% set show_db = false %}
+        {% set show_tables = false %}
+        {% set show_param = false %}
+        {% set show_payload = false %}
+        {% set show_rekom = false %}
+        {% set show_timeline = false %}
+        {% for row in exploit_summary_table %}
+          {% if row.database and row.database != '-' %}{% set show_db = true %}{% endif %}
+          {% if row.tables and row.tables != '-' %}{% set show_tables = true %}{% endif %}
+          {% if row.parameter and row.parameter != '-' %}{% set show_param = true %}{% endif %}
+          {% if row.payload and row.payload != '-' %}{% set show_payload = true %}{% endif %}
+          {% if row.recommendation and row.recommendation != '-' %}{% set show_rekom = true %}{% endif %}
+          {% if row.timeline and row.timeline != '-' %}{% set show_timeline = true %}{% endif %}
+        {% endfor %}
+        <table class="summary-table">
+          <tr>
+            <th>Jenis Kerentanan</th>
+            <th>Severity</th>
+            <th>Deskripsi</th>
+            {% if show_db %}<th>Database</th>{% endif %}
+            {% if show_tables %}<th>Tabel</th>{% endif %}
+            {% if show_param %}<th>Parameter</th>{% endif %}
+            {% if show_payload %}<th>Payload</th>{% endif %}
+            {% if show_rekom %}<th>Rekomendasi</th>{% endif %}
+            {% if show_timeline %}<th>Timeline</th>{% endif %}
+          </tr>
+          {% if exploit_summary_table and exploit_summary_table|length > 0 %}
+            {% for row in exploit_summary_table %}
+              <tr>
+                <td>{{ row.title }}</td>
+                <td>{{ row.severity }}</td>
+                <td>{{ row.description }}</td>
+                {% if show_db %}<td>{{ row.database }}</td>{% endif %}
+                {% if show_tables %}<td>{{ row.tables }}</td>{% endif %}
+                {% if show_param %}<td>{{ row.parameter }}</td>{% endif %}
+                {% if show_payload %}<td>{{ row.payload }}</td>{% endif %}
+                {% if show_rekom %}<td>{{ row.recommendation }}</td>{% endif %}
+                {% if show_timeline %}<td>{{ row.timeline }}</td>{% endif %}
+              </tr>
+                    {% endfor %}
+                {% else %}
+            <tr><td colspan="10">-</td></tr>
+                {% endif %}
+        </table>
+        {% if sast %}
+        <b>SAST:</b>
+                    <ul>
+          <li>Temuan: {{ sast.summary if sast.summary else '-' }}</li>
+                    </ul>
+        {% endif %}
+                </div>
+            </div>
+            
+    <div class="section">
+      <div class="section-title">Temuan Kerentanan</div>
+      <div class="section-content">
+        {% if findings %}
+          {% for f in findings %}
+            <div class="finding">
+              <b>{{ f.title }}</b> <span class="severity-{{ f.severity|lower }}">({{ f.severity }})</span>
+              {% if f.cwe %}<br><b>CWE:</b> {{ f.cwe }}{% endif %}
+              {% if f.cve %}<br><b>CVE:</b> {{ f.cve }}{% endif %}
+              <br><b>Deskripsi:</b> {{ f.description }}
+              <br><b>Dampak:</b> {{ f.impact }}
+              {% if f.recommendation %}<br><b>Rekomendasi:</b> {{ f.recommendation }}{% endif %}
+              <br><b>Output:</b>
+              <pre style="white-space:pre-wrap;word-break:break-all;">{{ f.evidence }}</pre>
+                    </div>
+                    {% endfor %}
+                {% else %}
+          <i>Tidak ada temuan vulnerabilities yang terdeteksi.</i>
+                {% endif %}
+            </div>
+        </div>
+        
+    <div class="section">
+      <div class="section-title">Rekomendasi Perbaikan</div>
+      <div class="section-content">
+        <ol class="recommendation-list">
+          {% for rec in high_priority_recommendations %}<li>{{ rec }}</li>{% endfor %}
+        </ol>
+        {% if timeline_recommendations and timeline_recommendations|length > 0 %}
+          <b>Waktu/Timeline Perbaikan:</b>
+          <ol class="recommendation-list">
+            {% for rec in timeline_recommendations %}<li>{{ rec }}</li>{% endfor %}
+          </ol>
+        {% endif %}
+        </div>
+    </div>
+  </div>
+  <footer>
+    Laporan ini dibuat dengan <b>Penedge - Penetration Testing Platform</b><br>
+    <span style="font-size:11px;">&copy; {{ current_year }} Penedge Team. Semua hak cipta dilindungi.</span>
+  </footer>
+</body>
+</html> 

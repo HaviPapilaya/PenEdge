@@ -1,0 +1,6 @@
+termcolor
+psutil
+requests
+jinja2
+weasyprint
+markdown
